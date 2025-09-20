@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ problem.title }} - Network Programming OJ</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <a href="/" class="back-link">← Quay lại danh sách bài tập</a>
+        
+        <h1>{{ problem.title }}</h1>
+        
+        <div class="description">
+            <h3>📝 Mô tả bài toán</h3>
+            <p>{{ problem.description }}</p>
+        </div>
+        
+        <div class="connection-info">
+            <h3>🔗 Thông tin kết nối</h3>
+            <p><strong>Host:</strong> <code>127.0.0.1</code></p>
+            <p><strong>Port:</strong> <code>{{ problem.port }}</code></p>
+            <p><strong>Session Token của bạn:</strong> <code class="token">{{ session_token }}</code></p>
+            
+            <div style="margin-top: 20px; padding: 15px; background: rgba(255, 193, 7, 0.1); border-radius: 8px; border-left: 4px solid #ffc107;">
+                <p><strong>⚠️ Quan trọng:</strong> Hãy sao chép Session Token này và sử dụng trong chương trình client của bạn. Token này chỉ có hiệu lực cho phiên làm bài hiện tại.</p>
+            </div>
+        </div>
+
+        <div style="background: rgba(102, 126, 234, 0.05); padding: 20px; border-radius: 10px; margin: 20px 0;">
+            <h3>💻 Hướng dẫn lập trình</h3>
+            <p><strong>Bước 1:</strong> Tạo socket TCP và kết nối đến <code>127.0.0.1:{{ problem.port }}</code></p>
+            <p><strong>Bước 2:</strong> Server sẽ gửi yêu cầu <code>SEND_TOKEN</code>, hãy gửi lại Session Token của bạn</p>
+            <p><strong>Bước 3:</strong> Server sẽ gửi file log, hãy nhận và lưu file này</p>
+            <p><strong>Bước 4:</strong> Đọc file log, tìm dòng có <code>SECRET_CODE:</code> và lấy mã bí mật</p>
+            <p><strong>Bước 5:</strong> Gửi lại kết quả theo định dạng <code>RESULT: [mã_bí_mật]</code></p>
+            <p><strong>Bước 6:</strong> Nhận "Mã nộp bài" từ server và nộp ở form bên dưới</p>
+        </div>
+
+        <div class="submission-form">
+            <h3>📤 Nộp bài</h3>
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="flash {{ category }}">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+            
+            <form method="post">
+                <label for="submission_code">Mã nộp bài (Submission Code):</label>
+                <input type="text" id="submission_code" name="submission_code" 
+                       placeholder="Dán mã nộp bài mà bạn nhận được từ chương trình client" required>
+                <button type="submit">Nộp bài</button>
+            </form>
+            
+            <div style="margin-top: 20px; padding: 15px; background: rgba(40, 167, 69, 0.1); border-radius: 8px; border-left: 4px solid #28a745;">
+                <p><strong>💡 Gợi ý:</strong> Sau khi chương trình client của bạn hoàn thành thành công, server sẽ gửi về một chuỗi hash dài. Đó chính là "Mã nộp bài" bạn cần dán vào ô trên.</p>
+            </div>
+        </div>
+        
+        <div style="margin-top: 30px; padding: 20px; background: rgba(108, 117, 125, 0.1); border-radius: 10px;">
+            <h3>🔧 Code mẫu Python</h3>
+            <p>Bạn có thể tham khảo cấu trúc cơ bản sau:</p>
+            <pre style="background: #2c3e50; color: #ecf0f1; padding: 15px; border-radius: 8px; overflow-x: auto; font-size: 0.9em;"><code>import socket
+
+# Thông tin kết nối
+HOST = '127.0.0.1'
+PORT = {{ problem.port }}
+TOKEN = '{{ session_token }}'
+
+# Tạo socket và kết nối
+sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+sock.connect((HOST, PORT))
+
+# Gửi token khi server yêu cầu
+# Nhận và xử lý file log
+# Tìm SECRET_CODE và gửi lại
+# Nhận submission code
+
+sock.close()</code></pre>
+        </div>
+    </div>
+</body>
+</html>
+
