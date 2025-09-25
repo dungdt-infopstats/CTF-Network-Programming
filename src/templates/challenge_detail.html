@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+
+{% block title %}{{ challenge.name }} - CTF Platform{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h2>{{ challenge.name }}</h2>
+        {% if challenge.solved %}
+            <span class="badge badge-success">✅ Solved</span>
+        {% else %}
+            <span class="badge badge-warning">⏳ Unsolved</span>
+        {% endif %}
+    </div>
+
+    <p style="margin-bottom: 30px; font-size: 16px;">{{ challenge.description }}</p>
+</div>
+
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+    <div>
+        <div class="card">
+            <h3>📤 Upload Your Server Code</h3>
+            <form id="upload-form" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label for="file">Python Server File (.py):</label>
+                    <input type="file" id="file" name="file" accept=".py" required>
+                </div>
+                <button type="submit" class="btn">Upload Code</button>
+            </form>
+            <div id="upload-status"></div>
+        </div>
+
+        <div class="card">
+            <h3>🚀 Start Challenge</h3>
+            <p>After uploading your code, start the challenge to get connection details.</p>
+            <button id="start-btn" class="btn" onclick="startChallenge()">Start Challenge</button>
+            <div id="connection-info"></div>
+        </div>
+    </div>
+
+    <div>
+        <div class="card">
+            <h3>📝 Submit CTF Answer</h3>
+            {% if success %}
+                <div class="alert alert-success">{{ success }}</div>
+            {% endif %}
+            {% if error %}
+                <div class="alert alert-error">{{ error }}</div>
+            {% endif %}
+
+            <form method="POST" action="/web/challenges/{{ challenge.id }}/submit">
+                <div class="form-group">
+                    <label for="ctf_answer">CTF Answer:</label>
+                    <input type="text" id="ctf_answer" name="ctf_answer" required placeholder="Paste your CTF answer here">
+                </div>
+                <button type="submit" class="btn">Submit Answer</button>
+            </form>
+        </div>
+
+        <div class="card">
+            <h3>💡 Instructions</h3>
+            <ol style="margin-left: 20px; line-height: 1.8;">
+                <li>Create a Python server that handles the challenge requirements</li>
+                <li>Import <code>ctf_helper</code> and use <code>get_ctf_answer_for_current_server()</code></li>
+                <li>Upload your server code using the form above</li>
+                <li>Start the challenge to get a port assignment</li>
+                <li>Test your server by connecting to the given host:port</li>
+                <li>Get the CTF answer from your server and submit it</li>
+            </ol>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <h3>🔧 Example Server Code</h3>
+    <div class="pre-code">import socket
+import sys
+from ctf_helper import get_ctf_answer_for_current_server
+
+def handle_client(client_socket):
+    client_socket.send(b"Welcome to your server!\n")
+
+    while True:
+        data = client_socket.recv(1024).decode().strip()
+        if data == "GET_FLAG":
+            ctf_answer = get_ctf_answer_for_current_server()
+            if ctf_answer:
+                client_socket.send(f"CTF_ANSWER:{ctf_answer}\n".encode())
+                break
+        else:
+            client_socket.send(f"ECHO: {data}\n".encode())
+
+    client_socket.close()
+
+def start_server(port):
+    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    server.bind(('localhost', port))
+    server.listen(5)
+
+    while True:
+        client_socket, addr = server.accept()
+        handle_client(client_socket)
+
+if __name__ == '__main__':
+    port = int(sys.argv[1])
+    start_server(port)</div>
+</div>
+
+<script>
+const challengeId = {{ challenge.id }};
+let currentRunId = null;
+
+// File upload
+document.getElementById('upload-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    const fileInput = document.getElementById('file');
+    const formData = new FormData();
+    formData.append('file', fileInput.files[0]);
+
+    const statusDiv = document.getElementById('upload-status');
+    statusDiv.innerHTML = '<p>Uploading...</p>';
+
+    try {
+        const response = await fetch(`/api/challenges/${challengeId}/upload`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token') || 'dummy'}`
+            },
+            body: formData
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            statusDiv.innerHTML = '<div class="alert alert-success">✅ File uploaded successfully!</div>';
+        } else {
+            statusDiv.innerHTML = `<div class="alert alert-error">❌ Upload failed: ${data.error}</div>`;
+        }
+    } catch (error) {
+        statusDiv.innerHTML = `<div class="alert alert-error">❌ Upload error: ${error.message}</div>`;
+    }
+});
+
+// Start challenge
+async function startChallenge() {
+    const btn = document.getElementById('start-btn');
+    const infoDiv = document.getElementById('connection-info');
+
+    btn.textContent = 'Starting...';
+    btn.disabled = true;
+
+    try {
+        const response = await fetch(`/api/challenges/${challengeId}/start`, {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token') || 'dummy'}`
+            }
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            currentRunId = data.run_id;
+            infoDiv.innerHTML = `
+                <div class="alert alert-success">
+                    <h4>🎯 Challenge Started!</h4>
+                    <p><strong>Host:</strong> ${data.connection.host}</p>
+                    <p><strong>Port:</strong> ${data.connection.port}</p>
+                    <p><strong>Run ID:</strong> ${data.run_id}</p>
+                    <p>Connect to this server to get your CTF answer!</p>
+                </div>
+            `;
+            btn.textContent = 'Restart Challenge';
+        } else {
+            infoDiv.innerHTML = `<div class="alert alert-error">❌ Failed to start: ${data.error}</div>`;
+            btn.textContent = 'Start Challenge';
+        }
+    } catch (error) {
+        infoDiv.innerHTML = `<div class="alert alert-error">❌ Error: ${error.message}</div>`;
+        btn.textContent = 'Start Challenge';
+    }
+
+    btn.disabled = false;
+}
+</script>
+
+<style>
+.pre-code {
+    background: #2d3748;
+    color: #e2e8f0;
+    padding: 20px;
+    border-radius: 8px;
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+    line-height: 1.5;
+    overflow-x: auto;
+}
+</style>
+{% endblock %}

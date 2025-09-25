@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}CTF Platform{% endblock %}</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; line-height: 1.6; background: #f4f4f4; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .navbar { background: #333; color: white; padding: 1rem 0; margin-bottom: 2rem; }
+        .navbar .container { display: flex; justify-content: space-between; align-items: center; }
+        .navbar h1 { color: #4CAF50; }
+        .navbar nav a { color: white; text-decoration: none; margin-left: 20px; }
+        .navbar nav a:hover { color: #4CAF50; }
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .btn { display: inline-block; padding: 10px 20px; background: #4CAF50; color: white; text-decoration: none; border-radius: 4px; border: none; cursor: pointer; }
+        .btn:hover { background: #45a049; }
+        .btn-secondary { background: #6c757d; }
+        .btn-danger { background: #dc3545; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+        .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
+        .alert { padding: 15px; margin-bottom: 20px; border-radius: 4px; }
+        .alert-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .alert-error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        .table th, .table td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+        .table th { background: #f8f9fa; }
+        .badge { display: inline-block; padding: 3px 8px; border-radius: 12px; font-size: 12px; }
+        .badge-success { background: #28a745; color: white; }
+        .badge-warning { background: #ffc107; color: black; }
+        .badge-info { background: #17a2b8; color: white; }
+        code { background: #f8f9fa; padding: 2px 6px; border-radius: 3px; font-family: monospace; }
+        .pre-code { background: #f8f9fa; padding: 15px; border-radius: 5px; overflow-x: auto; white-space: pre; font-family: monospace; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <div class="container">
+            <h1>🏁 CTF Platform</h1>
+            <nav>
+                <a href="/web">Dashboard</a>
+                <a href="/web/challenges">Challenges</a>
+                <a href="/web/admin">Admin</a>
+                <a href="/web/logout">Logout</a>
+            </nav>
+        </div>
+    </div>
+
+    <div class="container">
+        {% block content %}{% endblock %}
+    </div>
+
+    <script>
+        // Auto-refresh status every 5 seconds
+        function refreshStatus() {
+            const statusElements = document.querySelectorAll('[data-refresh="status"]');
+            statusElements.forEach(el => {
+                const url = el.dataset.url;
+                if (url) {
+                    fetch(url)
+                        .then(r => r.json())
+                        .then(data => {
+                            el.textContent = data.status || 'unknown';
+                            el.className = 'badge ' + (data.status === 'accepted' ? 'badge-success' : 'badge-info');
+                        })
+                        .catch(() => {});
+                }
+            });
+        }
+
+        setInterval(refreshStatus, 5000);
+    </script>
+</body>
+</html>

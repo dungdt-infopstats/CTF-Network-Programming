@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - CTF Platform{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2>👋 Welcome, {{ session.student_name }}!</h2>
+    <p>Student ID: <strong>{{ session.student_id }}</strong></p>
+</div>
+
+<div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px;">
+    <div>
+        <div class="card">
+            <h3>🎯 Your Challenges</h3>
+
+            {% if challenges %}
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Challenge</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for challenge in challenges %}
+                    <tr>
+                        <td>
+                            <strong>{{ challenge.name }}</strong><br>
+                            <small style="color: #666;">{{ challenge.description[:100] }}{% if challenge.description|length > 100 %}...{% endif %}</small>
+                        </td>
+                        <td>
+                            {% if challenge.solved %}
+                                <span class="badge badge-success">✅ Solved</span>
+                            {% else %}
+                                <span class="badge badge-warning">⏳ Unsolved</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="/web/challenges/{{ challenge.id }}" class="btn">
+                                {% if challenge.solved %}View{% else %}Solve{% endif %}
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p>No challenges available.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <div>
+        <div class="card">
+            <h3>📊 Your Stats</h3>
+            <div style="text-align: center;">
+                <div style="margin: 20px 0;">
+                    <h2 style="color: #4CAF50; margin: 0;">{{ solved_count }}</h2>
+                    <p>Challenges Solved</p>
+                </div>
+                <div style="margin: 20px 0;">
+                    <h2 style="color: #2196F3; margin: 0;">{{ total_challenges }}</h2>
+                    <p>Total Challenges</p>
+                </div>
+                <div style="margin: 20px 0;">
+                    <div style="background: #e0e0e0; height: 20px; border-radius: 10px; overflow: hidden;">
+                        <div style="background: #4CAF50; height: 100%; width: {{ (solved_count / total_challenges * 100) if total_challenges > 0 else 0 }}%; transition: width 0.3s ease;"></div>
+                    </div>
+                    <p style="margin-top: 10px;">{{ ((solved_count / total_challenges * 100) if total_challenges > 0 else 0)|round(1) }}% Complete</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>🚀 Quick Actions</h3>
+            <a href="/web/challenges" class="btn" style="width: 100%; margin-bottom: 10px;">View All Challenges</a>
+            <a href="/web/runs" class="btn btn-secondary" style="width: 100%; margin-bottom: 10px;">My Running Challenges</a>
+            {% if session.student_name == 'admin' %}
+            <a href="/web/admin" class="btn btn-danger" style="width: 100%;">Admin Panel</a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -8,7 +8,7 @@ import os
 from datetime import datetime
 import bcrypt
 
-DATABASE_FILE = 'src/ctf_platform.db'
+DATABASE_FILE = 'ctf_platform.db'
 
 def get_db_connection():
     """Get database connection"""

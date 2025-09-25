@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block title %}Challenges - CTF Platform{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2>🎯 All Challenges</h2>
+    <p>Choose a challenge to start solving!</p>
+</div>
+
+{% if challenges %}
+<div style="display: grid; gap: 20px;">
+    {% for challenge in challenges %}
+    <div class="card">
+        <div style="display: flex; justify-content: between; align-items: start; gap: 20px;">
+            <div style="flex: 1;">
+                <h3 style="margin-bottom: 10px;">
+                    {{ challenge.name }}
+                    {% if challenge.solved %}
+                        <span class="badge badge-success">✅ Solved</span>
+                    {% else %}
+                        <span class="badge badge-warning">⏳ Unsolved</span>
+                    {% endif %}
+                </h3>
+                <p style="margin-bottom: 15px; color: #666;">{{ challenge.description }}</p>
+            </div>
+            <div style="text-align: center;">
+                <a href="/web/challenges/{{ challenge.id }}" class="btn">
+                    {% if challenge.solved %}View Details{% else %}Start Challenge{% endif %}
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="card">
+    <p style="text-align: center; color: #666; margin: 40px 0;">
+        No challenges available. Contact admin to create some challenges.
+    </p>
+</div>
+{% endif %}
+{% endblock %}

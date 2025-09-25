@@ -6,7 +6,7 @@ This file should be imported by all challenge server codes
 
 import os
 import socket
-from redis_manager import get_ctf_answer
+from simple_port_manager import get_ctf_answer
 
 def get_current_port():
     """Get the port that the current server is running on"""

@@ -15,7 +15,9 @@ from datetime import datetime
 from database import *
 from auth import *
 from crypto_utils import *
-from redis_manager import *
+from simple_port_manager import *
+
+print("Using simple in-memory port management")
 
 app = Flask(__name__)
 app.secret_key = 'ctf-platform-secret-key-2025'
@@ -23,6 +25,10 @@ app.secret_key = 'ctf-platform-secret-key-2025'
 # Create required directories
 os.makedirs('tmp', exist_ok=True)
 os.makedirs('server_code', exist_ok=True)
+
+# Register web routes
+from web_routes import register_web_routes
+register_web_routes(app)
 
 # ============= AUTH ENDPOINTS =============
 

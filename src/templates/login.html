@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block title %}Login - CTF Platform{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 400px; margin: 50px auto;">
+    <h2 style="text-align: center; margin-bottom: 30px;">🔐 Login</h2>
+
+    {% if error %}
+    <div class="alert alert-error">{{ error }}</div>
+    {% endif %}
+
+    <form method="POST">
+        <div class="form-group">
+            <label for="name">Username:</label>
+            <input type="text" id="name" name="name" required placeholder="Enter your username">
+        </div>
+
+        <div class="form-group">
+            <label for="password">Password:</label>
+            <input type="password" id="password" name="password" required placeholder="Enter your password">
+        </div>
+
+        <div class="form-group">
+            <button type="submit" class="btn" style="width: 100%;">Login</button>
+        </div>
+    </form>
+
+    <div style="margin-top: 30px; padding: 15px; background: #e9ecef; border-radius: 5px;">
+        <h4>📋 Demo Accounts:</h4>
+        <p><strong>Admin:</strong> admin / admin123</p>
+        <p><strong>Students:</strong> student1, student2 / student123</p>
+        <p><strong>Special:</strong> 22025501 / password123</p>
+        <p><strong>Others:</strong> alice, bob, charlie / [name]123</p>
+    </div>
+</div>
+{% endblock %}

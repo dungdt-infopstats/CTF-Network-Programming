@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Panel - CTF Platform{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2>🛠️ Admin Panel</h2>
+    <p>Manage challenges and students</p>
+</div>
+
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+    <div>
+        <div class="card">
+            <h3>➕ Create Challenge</h3>
+            <form id="challenge-form">
+                <div class="form-group">
+                    <label for="challenge-name">Name:</label>
+                    <input type="text" id="challenge-name" required placeholder="Challenge name">
+                </div>
+                <div class="form-group">
+                    <label for="challenge-description">Description:</label>
+                    <textarea id="challenge-description" rows="3" required placeholder="Describe the challenge"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="challenge-secret">Secret Key:</label>
+                    <input type="text" id="challenge-secret" required placeholder="Secret for encryption">
+                </div>
+                <button type="submit" class="btn">Create Challenge</button>
+            </form>
+            <div id="challenge-status"></div>
+        </div>
+
+        <div class="card">
+            <h3>👥 Create Student</h3>
+            <form id="student-form">
+                <div class="form-group">
+                    <label for="student-name">Username:</label>
+                    <input type="text" id="student-name" required placeholder="Student username">
+                </div>
+                <div class="form-group">
+                    <label for="student-password">Password:</label>
+                    <input type="password" id="student-password" required placeholder="Student password">
+                </div>
+                <button type="submit" class="btn">Create Student</button>
+            </form>
+            <div id="student-status"></div>
+        </div>
+    </div>
+
+    <div>
+        <div class="card">
+            <h3>🎯 Existing Challenges</h3>
+            <div id="challenges-list">Loading...</div>
+        </div>
+
+        <div class="card">
+            <h3>👨‍🎓 All Students</h3>
+            <div id="students-list">Loading...</div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Create challenge
+document.getElementById('challenge-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    const data = {
+        name: document.getElementById('challenge-name').value,
+        description: document.getElementById('challenge-description').value,
+        secret: document.getElementById('challenge-secret').value
+    };
+
+    try {
+        const response = await fetch('/api/admin/challenges', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('token') || 'dummy'}`
+            },
+            body: JSON.stringify(data)
+        });
+
+        const result = await response.json();
+        const statusDiv = document.getElementById('challenge-status');
+
+        if (response.ok) {
+            statusDiv.innerHTML = '<div class="alert alert-success">✅ Challenge created successfully!</div>';
+            document.getElementById('challenge-form').reset();
+            loadChallenges();
+        } else {
+            statusDiv.innerHTML = `<div class="alert alert-error">❌ Error: ${result.error}</div>`;
+        }
+    } catch (error) {
+        document.getElementById('challenge-status').innerHTML = `<div class="alert alert-error">❌ Error: ${error.message}</div>`;
+    }
+});
+
+// Create student
+document.getElementById('student-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    const data = {
+        name: document.getElementById('student-name').value,
+        password: document.getElementById('student-password').value
+    };
+
+    try {
+        const response = await fetch('/api/admin/students', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('token') || 'dummy'}`
+            },
+            body: JSON.stringify(data)
+        });
+
+        const result = await response.json();
+        const statusDiv = document.getElementById('student-status');
+
+        if (response.ok) {
+            statusDiv.innerHTML = '<div class="alert alert-success">✅ Student created successfully!</div>';
+            document.getElementById('student-form').reset();
+            loadStudents();
+        } else {
+            statusDiv.innerHTML = `<div class="alert alert-error">❌ Error: ${result.error}</div>`;
+        }
+    } catch (error) {
+        document.getElementById('student-status').innerHTML = `<div class="alert alert-error">❌ Error: ${error.message}</div>`;
+    }
+});
+
+// Load challenges
+async function loadChallenges() {
+    try {
+        const response = await fetch('/api/challenges', {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token') || 'dummy'}`
+            }
+        });
+
+        const data = await response.json();
+        const listDiv = document.getElementById('challenges-list');
+
+        if (response.ok) {
+            const challenges = data.challenges;
+            if (challenges.length === 0) {
+                listDiv.innerHTML = '<p>No challenges created yet.</p>';
+            } else {
+                listDiv.innerHTML = challenges.map(c => `
+                    <div style="padding: 10px; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 10px;">
+                        <strong>${c.name}</strong><br>
+                        <small>${c.description}</small>
+                    </div>
+                `).join('');
+            }
+        } else {
+            listDiv.innerHTML = '<p>Error loading challenges</p>';
+        }
+    } catch (error) {
+        document.getElementById('challenges-list').innerHTML = '<p>Error loading challenges</p>';
+    }
+}
+
+// Load students
+async function loadStudents() {
+    try {
+        const response = await fetch('/api/admin/students', {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token') || 'dummy'}`
+            }
+        });
+
+        const data = await response.json();
+        const listDiv = document.getElementById('students-list');
+
+        if (response.ok) {
+            const students = data.students;
+            if (students.length === 0) {
+                listDiv.innerHTML = '<p>No students found.</p>';
+            } else {
+                listDiv.innerHTML = students.map(s => `
+                    <div style="padding: 10px; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 10px;">
+                        <strong>${s.name}</strong> (ID: ${s.id})
+                    </div>
+                `).join('');
+            }
+        } else {
+            listDiv.innerHTML = '<p>Error loading students</p>';
+        }
+    } catch (error) {
+        document.getElementById('students-list').innerHTML = '<p>Error loading students</p>';
+    }
+}
+
+// Load data on page load
+loadChallenges();
+loadStudents();
+</script>
+{% endblock %}
