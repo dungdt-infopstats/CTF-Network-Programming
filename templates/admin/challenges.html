@@ -1,0 +1,46 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Manage Challenges{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Challenges</h1>
+    <a href="/admin/challenges/create" class="btn btn-success">Create New Challenge</a>
+</div>
+
+<div class="table-responsive">
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Description</th>
+                <th>Secret</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for challenge in challenges %}
+            <tr>
+                <td>{{ challenge.id }}</td>
+                <td>{{ challenge.name }}</td>
+                <td>{{ challenge.description }}</td>
+                <td><code>{{ challenge.secret[:20] }}...</code></td>
+                <td>
+                    <a href="/admin/challenges/{{ challenge.id }}/edit" class="btn btn-sm btn-primary">Edit</a>
+                    <form method="POST" action="/admin/challenges/{{ challenge.id }}/delete" style="display: inline;">
+                        <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure?')">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% if not challenges %}
+<div class="alert alert-info">
+    No challenges found. <a href="/admin/challenges/create">Create your first challenge</a>.
+</div>
+{% endif %}
+{% endblock %}

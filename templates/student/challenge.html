@@ -1,0 +1,186 @@
+{% extends "student/base.html" %}
+
+{% block title %}{{ challenge.name }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <h1>{{ challenge.name }}</h1>
+        <p class="lead">{{ challenge.description }}</p>
+
+        {% if solved %}
+        <div class="alert alert-success">
+            <strong>Congratulations!</strong> You solved this challenge at {{ solved.solved_at }}.
+        </div>
+        {% else %}
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>Upload Server Code</h5>
+            </div>
+            <div class="card-body">
+                <form id="uploadForm" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label for="serverFile" class="form-label">Python Server File (.py)</label>
+                        <input type="file" class="form-control" id="serverFile" name="file" accept=".py" required>
+                        <div class="form-text">Upload your server implementation for this challenge.</div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Upload Server Code</button>
+                </form>
+                <div id="uploadStatus" class="mt-2"></div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>Start Challenge</h5>
+            </div>
+            <div class="card-body">
+                {% if active_port %}
+                <div class="alert alert-info">
+                    Challenge is running on port <strong>{{ active_port }}</strong>
+                </div>
+                {% endif %}
+
+                <button id="startButton" class="btn btn-success">Start Challenge Server</button>
+                <div id="serverStatus" class="mt-2"></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h5>Submit Answer</h5>
+            </div>
+            <div class="card-body">
+                <form id="submitForm">
+                    <div class="mb-3">
+                        <label for="answer" class="form-label">CTF Answer/Flag</label>
+                        <input type="text" class="form-control" id="answer" name="answer" placeholder="Enter the flag you received from the server" required>
+                    </div>
+                    <button type="submit" class="btn btn-warning">Submit Answer</button>
+                </form>
+                <div id="submitStatus" class="mt-2"></div>
+            </div>
+        </div>
+
+        {% endif %}
+    </div>
+
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5>Client Example</h5>
+            </div>
+            <div class="card-body">
+                <p>Use this Python code to connect to your server:</p>
+                <pre><code>import socket
+
+# Connect to server
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+s.connect(('0.0.0.0', PORT))  # Replace PORT
+
+# Receive challenge
+data = s.recv(1024).decode()
+print("Server:", data)
+
+# Send your answer
+answer = input("Your answer: ")
+s.send(answer.encode())
+
+# Get response
+response = s.recv(1024).decode()
+print("Response:", response)
+s.close()</code></pre>
+            </div>
+        </div>
+    </div>
+</div>
+
+<a href="/student/dashboard" class="btn btn-secondary mt-3">Back to Dashboard</a>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const challengeId = {{ challenge.id }};
+
+// Upload form handler
+document.getElementById('uploadForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    const formData = new FormData();
+    const fileInput = document.getElementById('serverFile');
+    formData.append('file', fileInput.files[0]);
+
+    const statusDiv = document.getElementById('uploadStatus');
+    statusDiv.innerHTML = '<div class="alert alert-info">Uploading...</div>';
+
+    try {
+        const response = await fetch(`/api/challenges/${challengeId}/upload`, {
+            method: 'POST',
+            body: formData
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            statusDiv.innerHTML = `<div class="alert alert-success">${result.message}</div>`;
+        } else {
+            statusDiv.innerHTML = `<div class="alert alert-danger">Error: ${result.error}</div>`;
+        }
+    } catch (error) {
+        statusDiv.innerHTML = `<div class="alert alert-danger">Upload failed: ${error.message}</div>`;
+    }
+});
+
+// Start challenge handler
+document.getElementById('startButton').addEventListener('click', async function() {
+    const statusDiv = document.getElementById('serverStatus');
+    statusDiv.innerHTML = '<div class="alert alert-info">Starting server...</div>';
+
+    try {
+        const response = await fetch(`/api/challenges/${challengeId}/start`);
+        const result = await response.json();
+
+        if (response.ok) {
+            statusDiv.innerHTML = `<div class="alert alert-success">Server started on port <strong>${result.port}</strong></div>`;
+            location.reload(); // Refresh to show active port
+        } else {
+            statusDiv.innerHTML = `<div class="alert alert-danger">Error: ${result.error}</div>`;
+        }
+    } catch (error) {
+        statusDiv.innerHTML = `<div class="alert alert-danger">Failed to start: ${error.message}</div>`;
+    }
+});
+
+// Submit form handler
+document.getElementById('submitForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    const answer = document.getElementById('answer').value;
+    const statusDiv = document.getElementById('submitStatus');
+
+    statusDiv.innerHTML = '<div class="alert alert-info">Submitting...</div>';
+
+    try {
+        const response = await fetch(`/api/challenges/${challengeId}/submit`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ answer: answer })
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            statusDiv.innerHTML = `<div class="alert alert-success">${result.message}</div>`;
+            setTimeout(() => location.reload(), 2000); // Refresh after success
+        } else {
+            statusDiv.innerHTML = `<div class="alert alert-danger">Error: ${result.error}</div>`;
+        }
+    } catch (error) {
+        statusDiv.innerHTML = `<div class="alert alert-danger">Submit failed: ${error.message}</div>`;
+    }
+});
+</script>
+{% endblock %}

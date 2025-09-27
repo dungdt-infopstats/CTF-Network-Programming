@@ -1,0 +1,33 @@
+{% extends "admin/base.html" %}
+
+{% block title %}CTF Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <h1>CTF Admin Dashboard</h1>
+        <p class="lead">Manage challenges and students for your CTF platform.</p>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Challenges</h5>
+                <p class="card-text">Create, edit, and manage CTF challenges.</p>
+                <a href="/admin/challenges" class="btn btn-primary">Manage Challenges</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Students</h5>
+                <p class="card-text">Add, import, and manage student accounts.</p>
+                <a href="/admin/students" class="btn btn-primary">Manage Students</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

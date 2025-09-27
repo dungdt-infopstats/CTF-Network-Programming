@@ -1,0 +1,39 @@
+{% extends "student/base.html" %}
+
+{% block title %}Student Dashboard{% endblock %}
+
+{% block content %}
+<h1>CTF Challenges</h1>
+<p class="lead">Select a challenge to participate in.</p>
+
+<div class="row">
+    {% for challenge in challenges %}
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">
+                    {{ challenge.name }}
+                    {% if challenge.id in solved_ids %}
+                        <span class="badge bg-success">Solved</span>
+                    {% endif %}
+                </h5>
+                <p class="card-text">{{ challenge.description }}</p>
+                <a href="/student/challenge/{{ challenge.id }}" class="btn btn-primary">
+                    {% if challenge.id in solved_ids %}
+                        View Challenge
+                    {% else %}
+                        Start Challenge
+                    {% endif %}
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% if not challenges %}
+<div class="alert alert-info">
+    No challenges available at the moment.
+</div>
+{% endif %}
+{% endblock %}
