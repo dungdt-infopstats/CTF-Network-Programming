@@ -50,6 +50,7 @@ def init_db():
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 student_id INTEGER NOT NULL,
                 challenge_id INTEGER NOT NULL,
+                score INTEGER NOT NULL DEFAULT 0,
                 solved_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 UNIQUE(student_id, challenge_id),
                 FOREIGN KEY(student_id) REFERENCES students(id),
@@ -261,6 +262,27 @@ def get_challenge_status(challenge_id):
         return jsonify({'status': 'active', 'port': int(port)})
 
     return jsonify({'status': 'not_started'})
+
+
+@app.route('/api/ranking')
+def get_ranking():
+    db = get_db()
+    ranking_data = db.execute('''
+        SELECT
+            s.name,
+            COALESCE(SUM(sc.score), 0) as total_score
+        FROM
+            students s
+        LEFT JOIN
+            student_challenges sc ON s.id = sc.student_id
+        GROUP BY
+            s.id
+        ORDER BY
+            total_score DESC, s.name ASC
+    ''').fetchall()
+
+    ranking = [{'student_name': row['name'], 'total_score': row['total_score']} for row in ranking_data]
+    return jsonify(ranking)
 
 # Admin Web Interface Routes
 @app.route('/admin')
