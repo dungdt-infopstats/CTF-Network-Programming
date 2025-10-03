@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CTF Ranking</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="/">CTF Challenges</a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="/">Home</a>
+                <a class="nav-link active" href="/ranking">Ranking</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <h1 class="mb-4">🏆 CTF Ranking</h1>
+        <p class="lead">See how students are progressing through the challenges!</p>
+
+        {% if ranking_data %}
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Current Rankings</h5>
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Rank</th>
+                                <th>Student Name</th>
+                                <th>Challenges Solved</th>
+                                <th>Progress</th>
+                                <th>Last Activity</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for student in ranking_data %}
+                            <tr>
+                                <td>
+                                    {% if loop.index == 1 and student.solved_count > 0 %}
+                                        🥇 {{ loop.index }}
+                                    {% elif loop.index == 2 and student.solved_count > 0 %}
+                                        🥈 {{ loop.index }}
+                                    {% elif loop.index == 3 and student.solved_count > 0 %}
+                                        🥉 {{ loop.index }}
+                                    {% else %}
+                                        {{ loop.index }}
+                                    {% endif %}
+                                </td>
+                                <td><strong>{{ student.name }}</strong></td>
+                                <td>{{ student.solved_count }}</td>
+                                <td>
+                                    <div class="progress" style="width: 200px;">
+                                        {% set progress_percent = (student.solved_count / total_challenges * 100) if total_challenges > 0 else 0 %}
+                                        <div class="progress-bar {% if progress_percent == 100 %}bg-success{% elif progress_percent >= 50 %}bg-info{% else %}bg-warning{% endif %}"
+                                             role="progressbar"
+                                             style="width: {{ progress_percent }}%">
+                                            {% if progress_percent > 15 %}{{ "%.0f"|format(progress_percent) }}%{% endif %}
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    {% if student.last_solved %}
+                                        {{ student.last_solved.split('.')[0] }}
+                                    {% else %}
+                                        <span class="text-muted">No activity</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">📊 Statistics</h5>
+                        <ul class="list-unstyled">
+                            <li><strong>Total Challenges:</strong> {{ total_challenges }}</li>
+                            <li><strong>Total Students:</strong> {{ ranking_data|length }}</li>
+                            <li><strong>Active Students:</strong> {{ ranking_data|selectattr('solved_count', 'greaterthan', 0)|list|length }}</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">🚀 Get Started</h5>
+                        <p>Want to participate? <a href="/" class="btn btn-primary btn-sm">Login to Start Challenges</a></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% else %}
+        <div class="alert alert-info">
+            <h4 class="alert-heading">No Data Available</h4>
+            <p>There are currently no students in the system. Check back later!</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

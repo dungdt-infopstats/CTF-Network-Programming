@@ -50,18 +50,18 @@ A Flask-based CTF (Capture The Flag) platform where students can upload server c
 
 4. **Run the Application**
    ```bash
-   python start_system.py
+   python run_production.py || python start_system.py (auto reload)
    ```
 
 ## Usage
 
 ### Admin Access
-- Navigate to `http://localhost:5000/admin` for admin dashboard
+- Navigate to `http://localhost:5000` for admin dashboard
 - Manage challenges at `/admin/challenges`
 - Manage students at `/admin/students`
 
 ### Student Access
-- Navigate to `http://localhost:5000/` for student login
+- Navigate to `http://localhost:5000/student` for student login
 - **Demo accounts**: alice/password123, bob/password456, charlie/password789
 
 ### Challenge Workflow

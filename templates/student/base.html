@@ -11,6 +11,10 @@
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
         <div class="container">
             <a class="navbar-brand" href="/student/dashboard">CTF Challenges</a>
+            <div class="navbar-nav me-auto">
+                <a class="nav-link" href="/student/dashboard">Dashboard</a>
+                <a class="nav-link" href="/ranking">Ranking</a>
+            </div>
             <div class="navbar-nav ms-auto">
                 <span class="navbar-text me-3">Welcome, {{ session.student_name }}!</span>
                 <a class="nav-link" href="/student/logout">Logout</a>

@@ -67,6 +67,80 @@
     </div>
 
     <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>Server Example</h5>
+            </div>
+            <div class="card-body">
+                <p>Use this template for your server implementation:</p>
+                <pre><code>import socket
+import threading
+import sys
+from server_utils import get_ctf_answer
+from typing import Tuple
+
+def handle_client(conn: socket.socket, addr: Tuple[str, int], expected_answer: str) -> None:
+    """
+    Handle client connection:
+    - Send challenge
+    - Receive response
+    - Send expected_answer if correct, else "Wrong answer!"
+    - Close connection
+    """
+    try:
+        conn.sendall(b"3 + 5 = ?\n")
+
+        response = conn.recv(1024).decode(errors='ignore').strip()
+
+        if response == "8":
+            conn.sendall(expected_answer.encode())
+        else:
+            conn.sendall(b"Wrong answer!")
+
+    except Exception as e:
+        print(f"Error handling client {addr}: {e}")
+    finally:
+        try:
+            conn.close()
+        except Exception:
+            pass
+
+def start_server(host: str = '0.0.0.0', port: int = 0) -> None:
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.bind((host, port))  # Auto-assign port if 0
+    port = sock.getsockname()[1]
+
+    # Print port on first line (required by system)
+    print(port)
+    sys.stdout.flush()
+
+    sock.listen(5)
+
+    # Get expected_answer for current port
+    ctf_answer = get_ctf_answer(port)
+
+    try:
+        while True:
+            conn, addr = sock.accept()
+            client_thread = threading.Thread(
+                target=handle_client,
+                args=(conn, addr, ctf_answer)
+            )
+            client_thread.daemon = True
+            client_thread.start()
+    except KeyboardInterrupt:
+        print("Server shutting down.")
+    except Exception as e:
+        print(f"Server error: {e}")
+    finally:
+        sock.close()
+
+if __name__ == "__main__":
+    start_server()
+</code></pre>
+            </div>
+        </div>
+
         <div class="card">
             <div class="card-header">
                 <h5>Client Example</h5>

@@ -50,7 +50,6 @@ def init_db():
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 student_id INTEGER NOT NULL,
                 challenge_id INTEGER NOT NULL,
-                score INTEGER NOT NULL DEFAULT 0,
                 solved_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 UNIQUE(student_id, challenge_id),
                 FOREIGN KEY(student_id) REFERENCES students(id),
@@ -162,29 +161,40 @@ def start_challenge(challenge_id):
     redis_client.set(f"{student_id}-{challenge_id}", port)
     redis_client.set(str(port), ctf_answer)
 
-    # Try to find and execute the uploaded server code
-    temp_dir = os.path.join(os.getcwd(), 'tmp')
+    # Try to find and execute the checked server code
+    checked_dir = os.path.join(os.getcwd(), 'tmp_checked')
     server_files = []
-    if os.path.exists(temp_dir):
-        for filename in os.listdir(temp_dir):
+    if os.path.exists(checked_dir):
+        for filename in os.listdir(checked_dir):
+            # First try to find student-specific code
             if filename.startswith(f"{challenge_id}_{student_id}_") and filename.endswith('.py'):
                 server_files.append(filename)
 
-    if not server_files:
-        return jsonify({'error': 'No server code uploaded for this challenge'}), 400
+        # If no student-specific code found, look for any approved code for this challenge
+        if not server_files:
+            for filename in os.listdir(checked_dir):
+                if filename.startswith(f"{challenge_id}_") and filename.endswith('.py'):
+                    server_files.append(filename)
 
-    # Use the most recent upload (by modification time)
-    server_files_with_time = [(f, os.path.getmtime(os.path.join(temp_dir, f))) for f in server_files]
+    if not server_files:
+        return jsonify({'error': 'No verified server code available for this challenge. Please wait for admin approval.'}), 400
+
+    # Use the most recent checked upload (by modification time)
+    server_files_with_time = [(f, os.path.getmtime(os.path.join(checked_dir, f))) for f in server_files]
     server_file = max(server_files_with_time, key=lambda x: x[1])[0]
-    server_path = os.path.join(temp_dir, server_file)
+    server_path = os.path.join(checked_dir, server_file)
 
     try:
-        # Start the server process with correct working directory
+        # Start the server process with correct working directory and Python path
+        env = os.environ.copy()
+        env['PYTHONPATH'] = os.getcwd()  # Add current directory to Python path
+
         proc = subprocess.Popen([sys.executable, server_path],
                               stdout=subprocess.PIPE,
                               stderr=subprocess.PIPE,
                               text=True,
-                              cwd=os.getcwd())
+                              cwd=os.getcwd(),
+                              env=env)
 
         # Read the port from stdout (server should print it first)
         actual_port = proc.stdout.readline().strip()
@@ -262,27 +272,6 @@ def get_challenge_status(challenge_id):
         return jsonify({'status': 'active', 'port': int(port)})
 
     return jsonify({'status': 'not_started'})
-
-
-@app.route('/api/ranking')
-def get_ranking():
-    db = get_db()
-    ranking_data = db.execute('''
-        SELECT
-            s.name,
-            COALESCE(SUM(sc.score), 0) as total_score
-        FROM
-            students s
-        LEFT JOIN
-            student_challenges sc ON s.id = sc.student_id
-        GROUP BY
-            s.id
-        ORDER BY
-            total_score DESC, s.name ASC
-    ''').fetchall()
-
-    ranking = [{'student_name': row['name'], 'total_score': row['total_score']} for row in ranking_data]
-    return jsonify(ranking)
 
 # Admin Web Interface Routes
 @app.route('/admin')
@@ -393,6 +382,106 @@ def admin_bulk_delete_students():
         db.commit()
     return redirect(url_for('admin_students'))
 
+@app.route('/admin/server_codes')
+def admin_server_codes():
+    """Admin interface to manage server codes"""
+    tmp_dir = os.path.join(os.getcwd(), 'tmp')
+    checked_dir = os.path.join(os.getcwd(), 'tmp_checked')
+
+    # Get files from tmp directory (pending approval)
+    pending_files = []
+    if os.path.exists(tmp_dir):
+        for filename in os.listdir(tmp_dir):
+            if filename.endswith('.py'):
+                filepath = os.path.join(tmp_dir, filename)
+                file_stat = os.stat(filepath)
+                pending_files.append({
+                    'filename': filename,
+                    'size': file_stat.st_size,
+                    'modified': datetime.fromtimestamp(file_stat.st_mtime).strftime('%Y-%m-%d %H:%M:%S')
+                })
+
+    # Get files from tmp_checked directory (approved)
+    approved_files = []
+    if os.path.exists(checked_dir):
+        for filename in os.listdir(checked_dir):
+            if filename.endswith('.py'):
+                filepath = os.path.join(checked_dir, filename)
+                file_stat = os.stat(filepath)
+                approved_files.append({
+                    'filename': filename,
+                    'size': file_stat.st_size,
+                    'modified': datetime.fromtimestamp(file_stat.st_mtime).strftime('%Y-%m-%d %H:%M:%S')
+                })
+
+    return render_template('admin/server_codes.html',
+                         pending_files=pending_files,
+                         approved_files=approved_files)
+
+@app.route('/admin/server_codes/approve/<filename>', methods=['POST'])
+def admin_approve_server_code(filename):
+    """Move a server code from tmp to tmp_checked (approve it)"""
+    tmp_path = os.path.join(os.getcwd(), 'tmp', filename)
+    checked_path = os.path.join(os.getcwd(), 'tmp_checked', filename)
+
+    if not os.path.exists(tmp_path):
+        return jsonify({'error': 'File not found'}), 404
+
+    try:
+        # Copy file to checked directory
+        import shutil
+        shutil.copy2(tmp_path, checked_path)
+        # Remove from tmp directory
+        os.remove(tmp_path)
+        return jsonify({'message': 'Server code approved successfully'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/admin/server_codes/reject/<filename>', methods=['POST'])
+def admin_reject_server_code(filename):
+    """Remove a server code from tmp (reject it)"""
+    tmp_path = os.path.join(os.getcwd(), 'tmp', filename)
+
+    if not os.path.exists(tmp_path):
+        return jsonify({'error': 'File not found'}), 404
+
+    try:
+        os.remove(tmp_path)
+        return jsonify({'message': 'Server code rejected successfully'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/admin/server_codes/view/<path:filename>')
+def admin_view_server_code(filename):
+    """View the contents of a server code file"""
+    # Check both directories
+    tmp_path = os.path.join(os.getcwd(), 'tmp', filename)
+    checked_path = os.path.join(os.getcwd(), 'tmp_checked', filename)
+
+    file_path = None
+    file_status = None
+
+    if os.path.exists(tmp_path):
+        file_path = tmp_path
+        file_status = 'pending'
+    elif os.path.exists(checked_path):
+        file_path = checked_path
+        file_status = 'approved'
+
+    if not file_path:
+        return jsonify({'error': 'File not found'}), 404
+
+    try:
+        with open(file_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        return jsonify({
+            'filename': filename,
+            'content': content,
+            'status': file_status
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 # Student Web Interface Routes
 @app.route('/', methods=['GET', 'POST'])
 def student_home():
@@ -476,8 +565,49 @@ def student_logout():
     session.clear()
     return redirect(url_for('student_login'))
 
+@app.route('/ranking')
+def public_ranking():
+    """Public ranking page showing student progress"""
+    db = get_db()
+
+    # Get ranking data - students with their solved challenge counts
+    ranking_data = db.execute('''
+        SELECT
+            s.name,
+            COUNT(sc.challenge_id) as solved_count,
+            MAX(sc.solved_at) as last_solved
+        FROM students s
+        LEFT JOIN student_challenges sc ON s.id = sc.student_id
+        GROUP BY s.id, s.name
+        ORDER BY solved_count DESC, last_solved ASC
+    ''').fetchall()
+
+    # Get total number of challenges
+    total_challenges = db.execute('SELECT COUNT(*) as count FROM challenges').fetchone()['count']
+
+    return render_template('ranking.html',
+                         ranking_data=ranking_data,
+                         total_challenges=total_challenges)
+
 if __name__ == '__main__':
     temp_dir = os.path.join(os.getcwd(), 'tmp')
     os.makedirs(temp_dir, exist_ok=True)
+    # Create tmp_checked directory for verified server codes
+    tmp_checked_dir = os.path.join(os.getcwd(), 'tmp_checked')
+    os.makedirs(tmp_checked_dir, exist_ok=True)
     init_db()
-    app.run(debug=True, host='0.0.0.0', port=5000)
+
+    # Configure Flask to exclude tmp directory from auto-reload
+    import sys
+    from werkzeug.serving import WSGIRequestHandler
+    WSGIRequestHandler.protocol_version = "HTTP/1.1"
+
+    # Set up reloader to exclude tmp directory
+    app.config['EXCLUDE_PATTERNS'] = [
+        os.path.join(os.getcwd(), 'tmp', '*'),
+        os.path.join(os.getcwd(), '__pycache__', '*')
+    ]
+
+    # For development - you can disable debug mode or run with use_reloader=False
+    # to prevent auto-restart when tmp files change
+    app.run(debug=False, host='0.0.0.0', port=5000)

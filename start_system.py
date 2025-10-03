@@ -80,6 +80,17 @@ def main():
     # Start the Flask application
     try:
         from app import app
+        import os
+
+        # Configure Flask to exclude tmp directories from auto-reload
+        app.config['EXCLUDE_PATTERNS'] = [
+            os.path.join(os.getcwd(), 'tmp', '*'),
+            os.path.join(os.getcwd(), 'tmp_checked', '*'),
+            os.path.join(os.getcwd(), '__pycache__', '*')
+        ]
+
+        # For development - you can disable debug mode or run with use_reloader=False
+        # to prevent auto-restart when tmp files change
         app.run(debug=True, host='0.0.0.0', port=5000)
     except KeyboardInterrupt:
         print("\nShutting down server...")
